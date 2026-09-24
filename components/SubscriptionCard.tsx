@@ -1,7 +1,11 @@
-import { View, Text, Image, Pressable } from "react-native";
+import {
+  formatCurrency,
+  formatStatusLabel,
+  formatSubscriptionDateTime,
+} from "@/lib/utils";
+import { clsx } from "clsx";
 import React from "react";
-import { formatCurrency, formatStatusLabel, formatSubscriptionDateTime } from "@/lib/utils";
-import clsx from "clsx";
+import { Image, Pressable, Text, View } from "react-native";
 
 const SubscriptionCard = ({
   name,
@@ -58,7 +62,7 @@ const SubscriptionCard = ({
                   numberOfLines={1}
                   ellipsizeMode="tail"
                 >
-                  {paymentMethod?.trim() ?? 'Not Provided'}
+                  {paymentMethod?.trim() ?? "Not Provided"}
                 </Text>
               </View>
             </View>
@@ -71,7 +75,7 @@ const SubscriptionCard = ({
                   numberOfLines={1}
                   ellipsizeMode="tail"
                 >
-                  {(category?.trim() || plan?.trim()) ?? 'Not Provided'}
+                  {(category?.trim() || plan?.trim()) ?? "Not Provided"}
                 </Text>
               </View>
             </View>
@@ -84,7 +88,9 @@ const SubscriptionCard = ({
                   numberOfLines={1}
                   ellipsizeMode="tail"
                 >
-                  {startDate ? formatSubscriptionDateTime(startDate) : 'Not Provided'}
+                  {startDate
+                    ? formatSubscriptionDateTime(startDate)
+                    : "Not Provided"}
                 </Text>
               </View>
             </View>
@@ -97,7 +103,9 @@ const SubscriptionCard = ({
                   numberOfLines={1}
                   ellipsizeMode="tail"
                 >
-                  {renewalDate ? formatSubscriptionDateTime(renewalDate) : 'Not Provided'}
+                  {renewalDate
+                    ? formatSubscriptionDateTime(renewalDate)
+                    : "Not Provided"}
                 </Text>
               </View>
             </View>
@@ -110,7 +118,7 @@ const SubscriptionCard = ({
                   numberOfLines={1}
                   ellipsizeMode="tail"
                 >
-                  {status?formatStatusLabel(status): 'Not Provided'}
+                  {status ? formatStatusLabel(status) : "Not Provided"}
                 </Text>
               </View>
             </View>
