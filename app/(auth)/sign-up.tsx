@@ -1,3 +1,4 @@
+import { posthog } from "@/lib/posthog";
 import { useAuth, useSignUp } from "@clerk/expo";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
@@ -75,6 +76,7 @@ export default function SignUpScreen() {
       }
       setIsVerifying(true);
     } catch (error: any) {
+      posthog?.captureException(error, { authentication_flow: "sign_up" });
       setFormError(error?.message || "Something went wrong. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -95,6 +97,14 @@ export default function SignUpScreen() {
         return;
       }
       if (signUp.status === "complete") {
+        posthog?.capture("account_signed_up", {
+          authentication_method: "password",
+          verification_method: "email_code",
+        });
+        posthog?.logger.info("authentication completed", {
+          flow: "sign_up",
+          verification_required: true,
+        });
         await signUp.finalize({
           navigate: () => {
             router.replace("/");
@@ -104,6 +114,7 @@ export default function SignUpScreen() {
       }
       setFormError("Your email was verified, but sign-up is not complete yet.");
     } catch (error: any) {
+      posthog?.captureException(error, { authentication_flow: "sign_up_verification" });
       setFormError(error?.message || "Verification failed. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -120,6 +131,7 @@ export default function SignUpScreen() {
       }
       setFormError("A new verification code has been sent.");
     } catch (error: any) {
+      posthog?.captureException(error, { authentication_flow: "sign_up_resend" });
       setFormError(error?.message || "Unable to resend the code.");
     } finally {
       setIsSubmitting(false);

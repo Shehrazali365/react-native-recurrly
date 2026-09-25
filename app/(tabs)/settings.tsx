@@ -1,3 +1,4 @@
+import { posthog } from "@/lib/posthog";
 import { useAuth, useUser } from "@clerk/expo";
 import { router } from "expo-router";
 import { styled } from "nativewind";
@@ -50,8 +51,12 @@ const SettingsScreen = () => {
     try {
       setIsSigningOut(true);
       await signOut();
+      posthog?.capture("account_signed_out");
+      posthog?.logger.info("authentication completed", { flow: "sign_out" });
+      posthog?.reset();
       router.replace("/(auth)/sign-in");
     } catch (error) {
+      posthog?.captureException(error, { authentication_flow: "sign_out" });
       console.log("Sign out error:", error);
     } finally {
       setIsSigningOut(false);
