@@ -1,3 +1,4 @@
+import { posthog } from "@/lib/posthog";
 import { useAuth, useSignIn } from "@clerk/expo";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
@@ -10,6 +11,7 @@ import {
   Text,
   TextInput,
   View,
+  Linking
 } from "react-native";
 export default function SignInScreen() {
   const { isLoaded: authLoaded, isSignedIn } = useAuth();
@@ -63,11 +65,24 @@ export default function SignInScreen() {
         return;
       }
       if (signIn.status === "complete") {
+        posthog?.capture("account_signed_in", {
+          authentication_method: "password",
+          verification_required: false,
+        });
+        posthog?.logger.info("authentication completed", {
+          flow: "sign_in",
+          verification_required: false,
+        });
         await signIn.finalize({
           navigate: ({ decorateUrl }) => {
             const url = decorateUrl("/");
+
             if (url.startsWith("http")) {
-              window.location.href = url;
+              if (Platform.OS === "web") {
+                window.location.href = url;
+              } else {
+                Linking.openURL(url);
+              }
             } else {
               router.replace("/");
             }
@@ -82,6 +97,7 @@ export default function SignInScreen() {
       }
       setFormError("Additional verification is required.");
     } catch (error: any) {
+      posthog?.captureException(error, { authentication_flow: "sign_in" });
       setFormError(error?.message || "Something went wrong. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -103,6 +119,14 @@ export default function SignInScreen() {
         return;
       }
       if (signIn.status === "complete") {
+        posthog?.capture("account_signed_in", {
+          authentication_method: "password",
+          verification_required: true,
+        });
+        posthog?.logger.info("authentication completed", {
+          flow: "sign_in",
+          verification_required: true,
+        });
         await signIn.finalize({
           navigate: () => {
             router.replace("/");
@@ -110,6 +134,7 @@ export default function SignInScreen() {
         });
       }
     } catch (error: any) {
+      posthog?.captureException(error, { authentication_flow: "sign_in_verification" });
       setFormError(error?.message || "Verification failed. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -124,8 +149,12 @@ export default function SignInScreen() {
         setFormError(error.message);
         return;
       }
+      posthog?.capture("verification_code_resent", {
+        authentication_flow: "sign_in",
+      });
       setFormError("A new verification code has been sent.");
     } catch (error: any) {
+      posthog?.captureException(error, { authentication_flow: "sign_in_resend" });
       setFormError(error?.message || "Unable to resend the code.");
     } finally {
       setIsSubmitting(false);
