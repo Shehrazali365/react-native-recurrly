@@ -79,7 +79,7 @@
   }
 
   .home-add-icon {
-    @apply size-12;
+    @apply size-10;
   }
 
   .home-balance-card {
@@ -351,47 +351,67 @@
   }
 
   .modal-overlay {
-    @apply flex-1 bg-black/50;
+    @apply flex-1 justify-end bg-black/50;
   }
 
   .modal-container {
-    @apply mt-auto max-h-[85%] rounded-t-3xl bg-background;
+    @apply mt-auto h-[82%] w-full overflow-hidden rounded-t-[28px] bg-background shadow-sm shadow-black/10;
   }
 
   .modal-header {
-    @apply flex-row items-center justify-between border-b border-border px-5 py-4;
+    @apply flex-row items-center justify-between px-4 pb-4 pt-[18px];
   }
 
   .modal-title {
-    @apply text-xl font-sans-bold text-primary;
+    @apply text-[18px] font-sans-bold text-primary;
   }
 
   .modal-close {
-    @apply size-8 items-center justify-center rounded-full bg-muted;
+    @apply size-8 items-center justify-center rounded-full bg-transparent;
   }
 
   .modal-close-text {
-    @apply text-lg font-sans-bold text-primary;
+    @apply text-[28px] font-sans-bold leading-[28px] text-primary;
   }
 
   .modal-body {
-    @apply gap-5 p-5;
+    @apply gap-[18px] pt-6 px-4 pb-6;
+  }
+
+  .modal-form-field {
+    @apply gap-2;
+  }
+
+  .modal-label {
+    @apply text-[15px] font-sans-semibold text-primary;
+  }
+
+  .modal-input {
+    @apply rounded-[10px] border border-border px-[14px] py-[12px] text-base font-sans-medium text-primary;
+  }
+
+  .modal-input-error {
+    @apply border-destructive;
+  }
+
+  .modal-input-text {
+    @apply text-base font-sans-medium text-primary;
   }
 
   .picker-row {
-    @apply flex-row gap-3;
+    @apply flex-row gap-[10px];
   }
 
   .picker-option {
-    @apply flex-1 items-center rounded-2xl border border-border bg-background py-3;
+    @apply flex-1 items-center justify-center rounded-[10px] border border-border py-[12px];
   }
 
   .picker-option-active {
-    @apply border-accent bg-accent/10;
+    @apply border-accent bg-[#f7e1d3];
   }
 
   .picker-option-text {
-    @apply text-sm font-sans-semibold text-muted-foreground;
+    @apply text-[14px] font-sans-semibold text-[#6b7280];
   }
 
   .picker-option-text-active {
@@ -403,18 +423,30 @@
   }
 
   .category-chip {
-    @apply rounded-full border border-border bg-background px-4 py-2;
+    @apply rounded-[10px] border border-border  px-[12px] py-[9px];
   }
 
   .category-chip-active {
-    @apply border-accent bg-accent/10;
+    @apply border-accent bg-[#f7e1d3];
   }
 
   .category-chip-text {
-    @apply text-sm font-sans-semibold text-muted-foreground;
+    @apply text-[12px] font-sans-semibold text-[#6b7280];
   }
 
   .category-chip-text-active {
     @apply text-accent;
+  }
+
+  .modal-submit {
+    @apply mt-1 items-center justify-center rounded-[10px] bg-accent py-[16px];
+  }
+
+  .modal-submit-disabled {
+    @apply bg-[#d7b29d];
+  }
+
+  .modal-submit-text {
+    @apply text-[18px] font-sans-bold text-primary;
   }
 }

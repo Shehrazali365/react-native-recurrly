@@ -25,7 +25,7 @@ export default function SignUpScreen() {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   useEffect(() => {
     if (authLoaded && isSignedIn) {
-      router.replace("/");
+      router.replace("/(tabs)");
     }
   }, [authLoaded, isSignedIn]);
   if (!authLoaded) {
@@ -101,20 +101,18 @@ export default function SignUpScreen() {
           authentication_method: "password",
           verification_method: "email_code",
         });
-        posthog?.logger.info("authentication completed", {
-          flow: "sign_up",
-          verification_required: true,
-        });
         await signUp.finalize({
           navigate: () => {
-            router.replace("/");
+            router.replace("/(tabs)");
           },
         });
         return;
       }
       setFormError("Your email was verified, but sign-up is not complete yet.");
     } catch (error: any) {
-      posthog?.captureException(error, { authentication_flow: "sign_up_verification" });
+      posthog?.captureException(error, {
+        authentication_flow: "sign_up_verification",
+      });
       setFormError(error?.message || "Verification failed. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -131,7 +129,9 @@ export default function SignUpScreen() {
       }
       setFormError("A new verification code has been sent.");
     } catch (error: any) {
-      posthog?.captureException(error, { authentication_flow: "sign_up_resend" });
+      posthog?.captureException(error, {
+        authentication_flow: "sign_up_resend",
+      });
       setFormError(error?.message || "Unable to resend the code.");
     } finally {
       setIsSubmitting(false);

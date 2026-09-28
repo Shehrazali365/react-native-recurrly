@@ -5,13 +5,13 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
   Text,
   TextInput,
   View,
-  Linking
 } from "react-native";
 export default function SignInScreen() {
   const { isLoaded: authLoaded, isSignedIn } = useAuth();
@@ -25,7 +25,7 @@ export default function SignInScreen() {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   useEffect(() => {
     if (authLoaded && isSignedIn) {
-      router.replace("/");
+      router.replace("/(tabs)");
     }
   }, [authLoaded, isSignedIn]);
   if (!authLoaded) {
@@ -69,13 +69,9 @@ export default function SignInScreen() {
           authentication_method: "password",
           verification_required: false,
         });
-        posthog?.logger.info("authentication completed", {
-          flow: "sign_in",
-          verification_required: false,
-        });
         await signIn.finalize({
           navigate: ({ decorateUrl }) => {
-            const url = decorateUrl("/");
+            const url = decorateUrl("/(tabs)");
 
             if (url.startsWith("http")) {
               if (Platform.OS === "web") {
@@ -84,7 +80,7 @@ export default function SignInScreen() {
                 Linking.openURL(url);
               }
             } else {
-              router.replace("/");
+              router.replace("/(tabs)");
             }
           },
         });
@@ -123,18 +119,16 @@ export default function SignInScreen() {
           authentication_method: "password",
           verification_required: true,
         });
-        posthog?.logger.info("authentication completed", {
-          flow: "sign_in",
-          verification_required: true,
-        });
         await signIn.finalize({
           navigate: () => {
-            router.replace("/");
+            router.replace("/(tabs)");
           },
         });
       }
     } catch (error: any) {
-      posthog?.captureException(error, { authentication_flow: "sign_in_verification" });
+      posthog?.captureException(error, {
+        authentication_flow: "sign_in_verification",
+      });
       setFormError(error?.message || "Verification failed. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -154,7 +148,9 @@ export default function SignInScreen() {
       });
       setFormError("A new verification code has been sent.");
     } catch (error: any) {
-      posthog?.captureException(error, { authentication_flow: "sign_in_resend" });
+      posthog?.captureException(error, {
+        authentication_flow: "sign_in_resend",
+      });
       setFormError(error?.message || "Unable to resend the code.");
     } finally {
       setIsSubmitting(false);
