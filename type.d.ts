@@ -21,6 +21,9 @@ declare global {
     paymentMethod?: string;
     status?: string;
     startDate?: string;
+    cancellationDate?: string;
+    createdAt?: string;
+    updatedAt?: string;
     price: number;
     currency?: string;
     billing: string;
@@ -32,6 +35,8 @@ declare global {
   interface SubscriptionCardProps extends Omit<Subscription, "id"> {
     expanded: boolean;
     onPress: () => void;
+    onDeletePress?: () => void;
+    isDeleting?: boolean;
     onCancelPress?: () => void;
     isCancelling?: boolean;
   }
@@ -43,6 +48,7 @@ declare global {
     price: number;
     currency?: string;
     daysLeft: number;
+    nextPaymentDate?: string;
   }
 
   interface UpcomingSubscriptionCardProps extends Omit<
@@ -52,6 +58,7 @@ declare global {
 
   interface ListHeadingProps {
     title: string;
+    onPress: () => void;
   }
 }
 

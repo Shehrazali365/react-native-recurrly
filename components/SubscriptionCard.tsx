@@ -21,35 +21,42 @@ const SubscriptionCard = ({
   renewalDate,
   startDate,
   status,
+  onDeletePress,
+  isDeleting = false,
   onPress,
 }: SubscriptionCardProps) => {
   return (
-    <Pressable
-      onPress={onPress}
+    <View
       className={clsx("sub-card", expanded ? "sub-card-expanded" : "bg-card")}
       style={!expanded && color ? { backgroundColor: color } : undefined}
     >
-      <View className="sub-head">
-        <View className="sub-main">
-          <Image source={icon} className="sub-icon" />
-          <View className="sub-copy">
-            <Text numberOfLines={1} className="sub-title">
-              {name}
-            </Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${expanded ? "Collapse" : "Expand"} ${name}`}
+        onPress={onPress}
+      >
+        <View className="sub-head">
+          <View className="sub-main">
+            <Image source={icon} className="sub-icon" />
+            <View className="sub-copy">
+              <Text numberOfLines={1} className="sub-title">
+                {name}
+              </Text>
 
-            <Text numberOfLines={1} ellipsizeMode="tail" className="sub-meta">
-              {category?.trim() ||
-                plan?.trim() ||
-                (renewalDate ? formatSubscriptionDateTime(renewalDate) : "")}
-            </Text>
+              <Text numberOfLines={1} ellipsizeMode="tail" className="sub-meta">
+                {category?.trim() ||
+                  plan?.trim() ||
+                  (renewalDate ? formatSubscriptionDateTime(renewalDate) : "")}
+              </Text>
+            </View>
+          </View>
+
+          <View className="sub-price-box">
+            <Text className="sub-price">{formatCurrency(price, currency)}</Text>
+            <Text className="sub-billing">{billing}</Text>
           </View>
         </View>
-
-        <View className="sub-price-box">
-          <Text className="sub-price">{formatCurrency(price, currency)}</Text>
-          <Text className="sub-billing">{billing}</Text>
-        </View>
-      </View>
+      </Pressable>
 
       {expanded && (
         <View className="sub-body">
@@ -123,9 +130,25 @@ const SubscriptionCard = ({
               </View>
             </View>
           </View>
+          {onDeletePress && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Remove ${name}`}
+              className={clsx(
+                "sub-cancel",
+                isDeleting && "sub-cancel-disabled",
+              )}
+              disabled={isDeleting}
+              onPress={onDeletePress}
+            >
+              <Text className="sub-cancel-text">
+                {isDeleting ? "Removing..." : "Remove subscription"}
+              </Text>
+            </Pressable>
+          )}
         </View>
       )}
-    </Pressable>
+    </View>
   );
 };
 
