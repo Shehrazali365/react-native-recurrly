@@ -1,110 +1,247 @@
 import SubscriptionCard from "@/components/SubscriptionCard";
-import { icons } from "@/constants/icons";
 import {
-  filterSubscriptions,
+  deleteSubscription,
   getSubscriptions,
+  subscribeToSubscriptions,
 } from "@/lib/subscription-store";
-import { styled } from "nativewind";
-import React, { useEffect, useMemo, useState } from "react";
+import { Feather } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { useEffect, useMemo, useState } from "react";
 import {
+  Alert,
   FlatList,
-  Image,
   Pressable,
+  StatusBar,
   Text,
   TextInput,
   View,
 } from "react-native";
-import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-const SafeAreaView = styled(RNSafeAreaView);
+const palette = {
+  background: "#FFFBE8",
+  navy: "#07132F",
+  secondary: "#526784",
+  border: "#D8D1B7",
+};
 
-const Subscriptions = () => {
+export default function SubscriptionsScreen() {
+  const router = useRouter();
   const [search, setSearch] = useState("");
+  const [searchVisible, setSearchVisible] = useState(false);
   const [expandedSubscriptionId, setExpandedSubscriptionId] = useState<
+    string | null
+  >(null);
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>(() =>
+    getSubscriptions(),
+  );
+  const [deletingSubscriptionId, setDeletingSubscriptionId] = useState<
     string | null
   >(null);
 
   useEffect(() => {
-    void getSubscriptions();
+    return subscribeToSubscriptions(setSubscriptions);
   }, []);
 
   const filteredSubscriptions = useMemo(() => {
-    return filterSubscriptions(search);
-  }, [search]);
+    const query = search.trim().toLowerCase();
+    if (!query) return subscriptions;
+
+    return subscriptions.filter((subscription) =>
+      [
+        subscription.name,
+        subscription.plan,
+        subscription.category,
+        subscription.paymentMethod,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(query),
+    );
+  }, [search, subscriptions]);
+
+  const showMenu = () => {
+    Alert.alert("My Subscriptions", undefined, [
+      { text: "Search", onPress: () => setSearchVisible(true) },
+      { text: "Close", style: "cancel" },
+    ]);
+  };
+
+  const confirmDeleteSubscription = (subscription: Subscription) => {
+    Alert.alert(
+      "Remove subscription?",
+      `Remove ${subscription.name}? This cannot be undone.`,
+      [
+        { text: "Keep", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: () => {
+            setDeletingSubscriptionId(subscription.id);
+            void deleteSubscription(subscription.id)
+              .then(() => setExpandedSubscriptionId(null))
+              .catch((error: unknown) => {
+                Alert.alert(
+                  "Unable to remove subscription",
+                  error instanceof Error ? error.message : "Please try again.",
+                );
+              })
+              .finally(() => setDeletingSubscriptionId(null));
+          },
+        },
+      ],
+    );
+  };
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <SafeAreaView
+      edges={["top", "left", "right"]}
+      style={{ backgroundColor: palette.background, flex: 1 }}
+    >
+      <StatusBar barStyle="dark-content" backgroundColor={palette.background} />
+      <View
+        style={{
+          alignItems: "center",
+          flexDirection: "row",
+          height: 50,
+          justifyContent: "space-between",
+          marginBottom: searchVisible ? 16 : 32,
+          marginHorizontal: 16,
+          marginTop: 6,
+        }}
+      >
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+          onPress={() =>
+            router.canGoBack() ? router.back() : router.navigate("/(tabs)")
+          }
+          style={{
+            alignItems: "center",
+            borderColor: palette.border,
+            borderRadius: 26,
+            borderWidth: 1,
+            height: 50,
+            justifyContent: "center",
+            width: 50,
+          }}
+        >
+          <Feather color={palette.navy} name="chevron-left" size={22} />
+        </Pressable>
+        <Text
+          style={{
+            color: palette.navy,
+            fontFamily: "sans-bold",
+            fontSize: 19,
+            left: 50,
+            position: "absolute",
+            right: 50,
+            textAlign: "center",
+          }}
+        >
+          My Subscriptions
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="More options"
+          onPress={showMenu}
+          style={{
+            alignItems: "center",
+            borderColor: palette.border,
+            borderRadius: 26,
+            borderWidth: 1,
+            height: 50,
+            justifyContent: "center",
+            width: 50,
+          }}
+        >
+          <Feather color={palette.navy} name="more-horizontal" size={22} />
+        </Pressable>
+      </View>
+
+      {searchVisible && (
+        <View
+          style={{
+            alignItems: "center",
+            borderColor: palette.border,
+            borderRadius: 22,
+            borderWidth: 1,
+            flexDirection: "row",
+            marginBottom: 16,
+            marginHorizontal: 16,
+            paddingHorizontal: 14,
+          }}
+        >
+          <TextInput
+            autoFocus
+            autoCapitalize="none"
+            autoCorrect={false}
+            onChangeText={setSearch}
+            placeholder="Search subscriptions"
+            placeholderTextColor={palette.secondary}
+            selectionColor={palette.navy}
+            style={{
+              color: palette.navy,
+              flex: 1,
+              fontFamily: "sans-medium",
+              fontSize: 15,
+              paddingVertical: 11,
+            }}
+            value={search}
+          />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close search"
+            onPress={() => {
+              setSearch("");
+              setSearchVisible(false);
+            }}
+          >
+            <Feather color={palette.secondary} name="x" size={19} />
+          </Pressable>
+        </View>
+      )}
+
       <FlatList
         data={filteredSubscriptions}
+        extraData={deletingSubscriptionId ?? expandedSubscriptionId}
         keyExtractor={(item) => item.id}
-        keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => (
           <SubscriptionCard
             {...item}
             expanded={expandedSubscriptionId === item.id}
-            onPress={() => {
+            onDeletePress={() => confirmDeleteSubscription(item)}
+            isDeleting={deletingSubscriptionId === item.id}
+            onPress={() =>
               setExpandedSubscriptionId((current) =>
                 current === item.id ? null : item.id,
-              );
-            }}
+              )
+            }
           />
         )}
         ItemSeparatorComponent={() => <View className="h-3" />}
         contentContainerStyle={{
-          paddingHorizontal: 18,
-          paddingBottom: 88,
-          paddingTop: 12,
+          paddingBottom: 120,
+          paddingHorizontal: 16,
         }}
-        ListHeaderComponent={
-          <>
-            <View className="mb-3 flex-row items-center justify-between px-1 pt-1">
-              <Pressable
-                accessibilityRole="button"
-                className="items-center justify-center rounded-full border border-border  p-3"
-                onPress={() => setSearch("")}
-              >
-                <Image source={icons.back} className="h-4 w-4" />
-              </Pressable>
-
-              <Text className="text-[28px] font-sans-bold text-[#081126]">
-                Subscriptions
-              </Text>
-
-              <Pressable
-                accessibilityRole="button"
-                className="items-center justify-center rounded-full border border-border  p-3"
-                onPress={() => setSearch("")}
-              >
-                <Image source={icons.menu} className="h-4 w-4" />
-              </Pressable>
-            </View>
-
-            <View className="mb-4 rounded-full border border-border  px-4 py-2.5 shadow-[0_1px_0_rgba(8,17,38,0.04)]">
-              <TextInput
-                value={search}
-                onChangeText={setSearch}
-                placeholder="Search subscriptions"
-                placeholderTextColor="#5f6470"
-                selectionColor="#081126"
-                autoCapitalize="none"
-                autoCorrect={false}
-                className="text-base font-sans-medium text-[#081126]"
-              />
-            </View>
-          </>
-        }
         ListEmptyComponent={
-          <View className="mt-8 rounded-2xl border border-dashed border-black/10 bg-white/30 p-6">
-            <Text className="text-center text-base font-sans-medium text-[#081126]">
-              No subscriptions match your search.
-            </Text>
-          </View>
+          <Text
+            style={{
+              color: palette.secondary,
+              fontFamily: "sans-medium",
+              fontSize: 15,
+              paddingTop: 12,
+              textAlign: "center",
+            }}
+          >
+            No subscriptions match your search.
+          </Text>
         }
       />
     </SafeAreaView>
   );
-};
-
-export default Subscriptions;
+}

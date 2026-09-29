@@ -4,9 +4,13 @@ import CreateSubscriptionModal from "@/components/CreateSubscriptionModal";
 import ListHeading from "@/components/ListHeading";
 import SubscriptionCard from "@/components/SubscriptionCard";
 import UpcomingSubscriptionCard from "@/components/UpcomingSubscriptionCard";
-import { HOME_BALANCE, UPCOMING_SUBSCRIPTIONS } from "@/constants/data";
+import { HOME_BALANCE } from "@/constants/data";
 import { icons } from "@/constants/icons";
 import { posthog } from "@/lib/posthog";
+import {
+  getLocalCalendarDayDifference,
+  getNextExpectedCharge,
+} from "@/lib/subscription-insights";
 import {
   addSubscription,
   getSubscriptions,
@@ -15,6 +19,7 @@ import {
 import { formatCurrency } from "@/lib/utils";
 import { useUser } from "@clerk/expo";
 import dayjs from "dayjs";
+import { useRouter } from "expo-router";
 import { styled } from "nativewind";
 import { useEffect, useState } from "react";
 import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
@@ -22,6 +27,7 @@ import { SafeAreaView as RNSafeAreaView } from "react-native-safe-area-context";
 const SafeAreaView = styled(RNSafeAreaView);
 
 export default function App() {
+  const router = useRouter();
   const { user } = useUser();
   const [expandedSubscriptionId, setExpandedSubscriptionId] = useState<
     string | null
@@ -51,8 +57,28 @@ export default function App() {
     .slice(0, 2)
     .toUpperCase();
 
-  const handleCreateSubscription = (subscription: Subscription) => {
-    addSubscription(subscription);
+  const now = new Date();
+  const upcomingSubscriptions = subscriptions
+    .flatMap((subscription) => {
+      const nextCharge = getNextExpectedCharge(subscription, now);
+      if (!nextCharge) return [];
+
+      return [
+        {
+          ...subscription,
+          daysLeft: getLocalCalendarDayDifference(nextCharge.date, now),
+          nextPaymentDate: nextCharge.date.toISOString(),
+        },
+      ];
+    })
+    .sort(
+      (left, right) =>
+        new Date(left.nextPaymentDate).getTime() -
+        new Date(right.nextPaymentDate).getTime(),
+    );
+
+  const handleCreateSubscription = async (subscription: Subscription) => {
+    await addSubscription(subscription);
   };
 
   return (
@@ -103,9 +129,12 @@ export default function App() {
             </View>
 
             <View className="mb-5">
-              <ListHeading title="Upcoming" />
+              <ListHeading
+                title="Upcoming"
+                onPress={() => router.navigate("/(tabs)/subscriptions")}
+              />
               <FlatList
-                data={UPCOMING_SUBSCRIPTIONS}
+                data={upcomingSubscriptions}
                 renderItem={({ item }) => (
                   <UpcomingSubscriptionCard {...item} />
                 )}
@@ -120,7 +149,10 @@ export default function App() {
               />
             </View>
 
-            <ListHeading title="All Subscriptions" />
+            <ListHeading
+              title="All Subscriptions"
+              onPress={() => router.navigate("/(tabs)/subscriptions")}
+            />
           </>
         )}
         data={subscriptions}

@@ -1,8 +1,11 @@
 import AuthGate from "@/components/AuthGate";
 import { tabs } from "@/constants/data";
 import { colors, components } from "@/constants/theme";
+import { setSubscriptionOwner } from "@/lib/subscription-store";
+import { useUser } from "@clerk/expo";
 import { clsx } from "clsx";
 import { Tabs } from "expo-router";
+import { useEffect } from "react";
 import { Image, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -10,6 +13,13 @@ const tabbar = components.tabBar;
 
 const TabsLayout = () => {
   const insets = useSafeAreaInsets();
+  const { isLoaded, user } = useUser();
+
+  useEffect(() => {
+    if (isLoaded && user?.id) {
+      void setSubscriptionOwner(user.id);
+    }
+  }, [isLoaded, user?.id]);
 
   const TabIcon = ({ focused, icon }: TabIconProps) => {
     return (

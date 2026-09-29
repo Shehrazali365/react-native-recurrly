@@ -14,7 +14,14 @@ import {
   View,
 } from "react-native";
 
-const FREQUENCY_OPTIONS = ["Monthly", "Yearly"] as const;
+const FREQUENCY_OPTIONS = [
+  "Monthly",
+  "Every 2 months",
+  "Quarterly",
+  "Every 6 months",
+  "Yearly",
+] as const;
+type BillingFrequency = (typeof FREQUENCY_OPTIONS)[number];
 const CATEGORY_OPTIONS = [
   "Entertainment",
   "AI Tools",
@@ -67,13 +74,13 @@ const getSubscriptionColor = (name: string) => {
 type CreateSubscriptionModalProps = {
   visible: boolean;
   onClose: () => void;
-  onCreate: (subscription: Subscription) => void;
+  onCreate: (subscription: Subscription) => void | Promise<void>;
 };
 
 const defaultFormState = {
   name: "",
   price: "",
-  frequency: "Monthly" as "Monthly" | "Yearly",
+  frequency: "Monthly" as BillingFrequency,
   category: "Entertainment" as string,
 };
 
@@ -84,11 +91,12 @@ export default function CreateSubscriptionModal({
 }: CreateSubscriptionModalProps) {
   const [name, setName] = useState(defaultFormState.name);
   const [price, setPrice] = useState(defaultFormState.price);
-  const [frequency, setFrequency] = useState<"Monthly" | "Yearly">(
+  const [frequency, setFrequency] = useState<BillingFrequency>(
     defaultFormState.frequency,
   );
   const [category, setCategory] = useState(defaultFormState.category);
   const [formError, setFormError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   const resetForm = () => {
     setName(defaultFormState.name);
@@ -103,25 +111,31 @@ export default function CreateSubscriptionModal({
     onClose();
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const trimmedName = name.trim();
-    const parsedPrice = Number.parseFloat(price);
+    const parsedPrice = Number(price.trim());
 
     if (!trimmedName) {
       setFormError("Please enter a subscription name.");
       return;
     }
 
-    if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) {
-      setFormError("Please enter a valid price greater than 0.");
+    if (!price.trim() || !Number.isFinite(parsedPrice) || parsedPrice < 0) {
+      setFormError("Please enter a valid non-negative price.");
       return;
     }
 
+    const intervalMonths: Record<BillingFrequency, number> = {
+      Monthly: 1,
+      "Every 2 months": 2,
+      Quarterly: 3,
+      "Every 6 months": 6,
+      Yearly: 12,
+    };
     const startDate = dayjs().toISOString();
-    const renewalDate =
-      frequency === "Monthly"
-        ? dayjs().add(1, "month").toISOString()
-        : dayjs().add(1, "year").toISOString();
+    const renewalDate = dayjs()
+      .add(intervalMonths[frequency], "month")
+      .toISOString();
 
     const newSubscription: Subscription = {
       id: `${trimmedName.toLowerCase().replace(/\s+/g, "-")}-${Date.now()}`,
@@ -137,25 +151,39 @@ export default function CreateSubscriptionModal({
       color: getSubscriptionColor(trimmedName),
     };
 
-    posthog?.capture("subscription_created", {
-      subscription_id: newSubscription.id,
-      subscription_name: newSubscription.name,
-      subscription_category: newSubscription.category ?? "unknown",
-      subscription_frequency: newSubscription.frequency ?? "monthly",
-      subscription_billing: newSubscription.billing,
-      subscription_price: newSubscription.price,
-      subscription_status: newSubscription.status ?? "active",
-      renewal_date: newSubscription.renewalDate ?? null,
-      start_date: newSubscription.startDate ?? null,
-      icon_source: "resolved",
-    });
-
-    onCreate(newSubscription);
-    resetForm();
-    onClose();
+    try {
+      setIsSaving(true);
+      await onCreate(newSubscription);
+      posthog?.capture("subscription_created", {
+        subscription_id: newSubscription.id,
+        subscription_name: newSubscription.name,
+        subscription_category: newSubscription.category ?? "unknown",
+        subscription_frequency: newSubscription.frequency ?? "monthly",
+        subscription_billing: newSubscription.billing,
+        subscription_price: newSubscription.price,
+        subscription_status: newSubscription.status ?? "active",
+        renewal_date: newSubscription.renewalDate ?? null,
+        start_date: newSubscription.startDate ?? null,
+        icon_source: "resolved",
+      });
+      resetForm();
+      onClose();
+    } catch (error) {
+      setFormError(
+        error instanceof Error ? error.message : "Unable to save subscription.",
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const isSubmitDisabled = !name.trim() || Number.parseFloat(price) <= 0;
+  const parsedPrice = Number(price.trim());
+  const isSubmitDisabled =
+    isSaving ||
+    !name.trim() ||
+    !price.trim() ||
+    !Number.isFinite(parsedPrice) ||
+    parsedPrice < 0;
 
   return (
     <Modal
@@ -219,20 +247,20 @@ export default function CreateSubscriptionModal({
 
                 <View className="modal-form-field">
                   <Text className="modal-label">Frequency</Text>
-                  <View className="picker-row">
+                  <View className="category-scroll">
                     {FREQUENCY_OPTIONS.map((option) => (
                       <Pressable
                         key={option}
                         onPress={() => setFrequency(option)}
                         className={clsx(
-                          "picker-option",
-                          frequency === option && "picker-option-active",
+                          "category-chip",
+                          frequency === option && "category-chip-active",
                         )}
                       >
                         <Text
                           className={clsx(
-                            "picker-option-text",
-                            frequency === option && "picker-option-text-active",
+                            "category-chip-text",
+                            frequency === option && "category-chip-text-active",
                           )}
                         >
                           {option}
@@ -272,7 +300,7 @@ export default function CreateSubscriptionModal({
                 ) : null}
 
                 <Pressable
-                  onPress={handleSubmit}
+                  onPress={() => void handleSubmit()}
                   disabled={isSubmitDisabled}
                   className={clsx(
                     "modal-submit",
